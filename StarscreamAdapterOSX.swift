@@ -12,7 +12,7 @@ import StarscreamOSX
 class StarscreamAdapterOSX : WriteableSocket {
     var socket : WebSocket
     
-    init(scheme : String, host : String, path : String, connect:((Void) -> Void), disconnect:((NSError?) -> Void), text:((String) -> Void)) {
+    required init(scheme : String, host : String, path : String, connect:((Void) -> Void), disconnect:((NSError?) -> Void), text:((String) -> Void)) {
         socket = WebSocket(
             url: NSURL(
                 scheme: scheme,
