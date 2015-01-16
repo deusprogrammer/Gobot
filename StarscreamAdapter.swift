@@ -7,9 +7,13 @@
 //
 
 import Foundation
+#if os(iOS)
+import Starscream
+#elseif os(OSX)
 import StarscreamOSX
+#endif
 
-class StarscreamAdapterOSX : WriteableSocket {
+class StarscreamAdapter : WriteableSocket {
     var socket : WebSocket
     
     required init(scheme : String, host : String, path : String, connect:((Void) -> Void), disconnect:((NSError?) -> Void), text:((String) -> Void)) {
