@@ -12,16 +12,13 @@ import StarscreamOSX
 class StarscreamAdapterOSX : WriteableSocket {
     var socket : WebSocket
     
-    init(socket: WebSocket) {
-        self.socket = socket
-    }
-    
-    init(scheme : String, host : String, path: String) {
+    init(scheme : String, host : String, path : String, connect:((Void) -> Void), disconnect:((NSError?) -> Void), text:((String) -> Void)) {
         socket = WebSocket(
             url: NSURL(
                 scheme: scheme,
                 host: host,
-                path: path)!)
+                path: path)!, connect: connect, disconnect: disconnect, text: text)
+        socket.connect()
     }
     
     func write(str: String) {
