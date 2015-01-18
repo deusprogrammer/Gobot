@@ -9,9 +9,9 @@
 import Foundation
 
 class STOMPClient {
-    var socket : WriteableSocket
+    var socket : STOMPClientAdapter
     
-    init(socket: WriteableSocket) {
+    init(socket: STOMPClientAdapter) {
         self.socket = socket
     }
     
@@ -20,39 +20,63 @@ class STOMPClient {
     }
     
     func connect(host: String, version: String) {
-        var connectCommand = STOMPConnect(host: host, version: version)
-        println(">>\(connectCommand.getCommandString())~")
-        socket.write(connectCommand.getCommandString())
+        var command = STOMPConnect(host: host, version: version)
+        println(">>\(command.getCommandString())~")
+        socket.write(command.getCommandString())
     }
     
     func subscribe(destination: String, id: String = "0", ack : String = "auto", body : String? = nil) {
-        var subscribeCommand = STOMPSubscribe(id: id, destination: destination, ack: ack, body: body)
-        println(">>\(subscribeCommand.getCommandString())~")
-        socket.write(subscribeCommand.getCommandString())
+        var command = STOMPSubscribe(id: id, destination: destination, ack: ack, body: body)
+        println(">>\(command.getCommandString())~")
+        socket.write(command.getCommandString())
     }
     
     func unsubscribe(destination: String, id: String = "0", body : String? = nil) {
-        var subscribeCommand = STOMPUnsubscribe(id: id, body: body)
-        println(">>\(subscribeCommand.getCommandString())~")
-        socket.write(subscribeCommand.getCommandString())
+        var command = STOMPUnsubscribe(id: id, body: body)
+        println(">>\(command.getCommandString())~")
+        socket.write(command.getCommandString())
     }
     
     func send(destination : String, contentType : String = "text/plain", body: String) {
-        var sendCommand = STOMPSend(destination: destination, contentType: contentType, body: body)
-        println(">>\(sendCommand.getCommandString())~")
-        socket.write(sendCommand.getCommandString())
+        var command = STOMPSend(destination: destination, contentType: contentType, body: body)
+        println(">>\(command.getCommandString())~")
+        socket.write(command.getCommandString())
     }
     
     func ack(id: String, transaction: String! = nil) {
-        var ackCommand = STOMPAck(id: id, transaction: transaction)
-        println(">>\(ackCommand.getCommandString())")
-        socket.write(ackCommand.getCommandString())
+        var command = STOMPAck(id: id, transaction: transaction)
+        println(">>\(command.getCommandString())")
+        socket.write(command.getCommandString())
     }
     
     func nack(id: String, transaction: String! = nil) {
-        var ackCommand = STOMPNack(id: id, transaction: transaction)
-        println(">>\(ackCommand.getCommandString())")
-        socket.write(ackCommand.getCommandString())
+        var command = STOMPNack(id: id, transaction: transaction)
+        println(">>\(command.getCommandString())")
+        socket.write(command.getCommandString())
+    }
+    
+    func disconnect(receipt : String) {
+        var command = STOMPDisconnect(receipt: receipt)
+        println(">>\(command.getCommandString())")
+        socket.write(command.getCommandString())
+    }
+    
+    func begin(transaction : String) {
+        var command = STOMPBegin(transaction: transaction)
+        println(">>\(command.getCommandString())")
+        socket.write(command.getCommandString())
+    }
+    
+    func commit(transaction : String) {
+        var command = STOMPCommit(transaction: transaction)
+        println(">>\(command.getCommandString())")
+        socket.write(command.getCommandString())
+    }
+    
+    func abort(transaction : String) {
+        var command = STOMPAbort(transaction: transaction)
+        println(">>\(command.getCommandString())")
+        socket.write(command.getCommandString())
     }
 }
 
@@ -99,7 +123,7 @@ class STOMPFrame : Printable {
 }
 
 class STOMPConnect : STOMPFrame {
-    init(host : String, version : String, body : String? = nil) {
+    init(host : String, version : String) {
         super.init()
         self.command = STOMPCommand.CONNECT
         self.headers["host"] = host
@@ -129,16 +153,20 @@ class STOMPUnsubscribe : STOMPFrame {
 }
 
 class STOMPSend : STOMPFrame {
-    init(destination : String, contentType : String, body : String? = nil) {
+    init(destination : String, contentType : String, transaction: String! = nil, body : String) {
         super.init()
         self.command = STOMPCommand.SEND
         self.headers["destination"] = destination
         self.headers["content-type"] = contentType
+        self.headers["content-length"] = "\(body.lengthOfBytesUsingEncoding(NSUTF8StringEncoding))"
+        if transaction != nil {
+            self.headers["transaction"] = transaction
+        }
         self.body = body
     }
 }
 
-class STOMPAck :STOMPFrame {
+class STOMPAck : STOMPFrame {
     init(id : String, transaction: String! = nil) {
         super.init()
         self.command = STOMPCommand.ACK
@@ -150,7 +178,7 @@ class STOMPAck :STOMPFrame {
     }
 }
 
-class STOMPNack :STOMPFrame {
+class STOMPNack : STOMPFrame {
     init(id : String, transaction: String! = nil) {
         super.init()
         self.command = STOMPCommand.NACK
@@ -162,15 +190,57 @@ class STOMPNack :STOMPFrame {
     }
 }
 
+class STOMPDisconnect : STOMPFrame {
+    init(receipt : String) {
+        super.init()
+        self.command = STOMPCommand.DISCONNECT
+        self.headers["receipt"] = receipt
+    }
+}
+
+class STOMPTransactionFrame : STOMPFrame {
+    init(transaction: String) {
+        super.init()
+        self.headers["transaction"] = transaction
+    }
+}
+
+class STOMPBegin : STOMPTransactionFrame {
+    override init(transaction: String) {
+        super.init(transaction: transaction)
+        self.command = STOMPCommand.BEGIN
+    }
+}
+
+class STOMPCommit : STOMPTransactionFrame {
+    override init(transaction: String) {
+        super.init(transaction: transaction)
+        self.command = STOMPCommand.COMMIT
+    }
+}
+
+class STOMPAbort : STOMPTransactionFrame {
+    override init(transaction: String) {
+        super.init(transaction: transaction)
+        self.command = STOMPCommand.ABORT
+    }
+}
+
 // Eventually need to expand this to include other commands
 enum STOMPCommand : String {
     // Client commands
     case CONNECT     = "CONNECT"
+    case DISCONNECT  = "DISCONNECT"
     case SUBSCRIBE   = "SUBSCRIBE"
     case UNSUBSCRIBE = "UNSUBSCRIBE"
     case SEND        = "SEND"
     case ACK         = "ACK"
     case NACK        = "NACK"
+    
+    // Client transaction commands
+    case BEGIN       = "BEGIN"
+    case COMMIT      = "COMMIT"
+    case ABORT       = "ABORT"
     
     // Server commands
     case CONNECTED   = "CONNECTED"
@@ -179,7 +249,14 @@ enum STOMPCommand : String {
     case ERROR       = "ERROR"
 }
 
-protocol WriteableSocket {
-    init(scheme : String, host : String, path : String, connect:((Void) -> Void), disconnect:((NSError?) -> Void), text:((String) -> Void))
+protocol STOMPClientDelegate {
+    func onConnect()
+    func onDisconnect(error : NSError?)
+    func onReceive(message : String)
+}
+
+protocol STOMPClientAdapter {
+    var delegate : STOMPClientDelegate? {get set}
+    init(scheme : String, host : String, path : String)
     func write(str : String)
 }

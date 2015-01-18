@@ -7,25 +7,49 @@
 //
 
 import Foundation
-#if os(iOS)
-import Starscream
-#elseif os(OSX)
 import StarscreamOSX
-#endif
 
-class StarscreamAdapter : WriteableSocket {
+class StarscreamAdapter : STOMPClientAdapter, WebSocketDelegate {
     var socket : WebSocket
+    var delegate : STOMPClientDelegate?
     
-    required init(scheme : String, host : String, path : String, connect:((Void) -> Void), disconnect:((NSError?) -> Void), text:((String) -> Void)) {
+    required init(scheme : String, host : String, path : String) {
         socket = WebSocket(
             url: NSURL(
                 scheme: scheme,
                 host: host,
-                path: path)!, connect: connect, disconnect: disconnect, text: text)
+                path: path)!)
         socket.connect()
+        socket.delegate = self
     }
     
     func write(str: String) {
         socket.writeString(str)
+    }
+    
+    func websocketDidConnect() {
+        if delegate != nil {
+            delegate?.onConnect()
+        }
+    }
+    
+    func websocketDidDisconnect(error: NSError?) {
+        if delegate != nil {
+            delegate?.onDisconnect(error)
+        }
+    }
+    
+    func websocketDidReceiveData(data: NSData) {
+        
+    }
+    
+    func websocketDidReceiveMessage(text: String) {
+        if delegate != nil {
+            delegate?.onReceive(text)
+        }
+    }
+    
+    func websocketDidWriteError(error: NSError?) {
+
     }
 }
