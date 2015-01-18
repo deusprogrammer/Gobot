@@ -9,7 +9,7 @@
 import Foundation
 import StarscreamOSX
 
-class StarscreamAdapter : STOMPClientAdapter, WebSocketDelegate {
+class StarscreamAdapter : STOMPClientAdapter, STOMPOverWebSocket, WebSocketDelegate {
     var socket : WebSocket
     var delegate : STOMPClientDelegate?
     

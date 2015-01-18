@@ -255,8 +255,16 @@ protocol STOMPClientDelegate {
     func onReceive(message : String)
 }
 
+protocol STOMPOverWebSocket {
+    init(scheme : String, host : String, path : String)
+}
+
+protocol STOMPOverTCPIP {
+    init(host : String, port : String)
+}
+
 protocol STOMPClientAdapter {
     var delegate : STOMPClientDelegate? {get set}
-    init(scheme : String, host : String, path : String)
+    
     func write(str : String)
 }
